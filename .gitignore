@@ -1,0 +1,22 @@
+# Temporary files :
+*~
+
+# Python:
+*.pyc
+
+# Folders
+tmp
+.Xil
+
+# Vivado :
+*.jou
+*.log
+vivado_*.str
+
+# Binaries
+devicetree.dtb
+fw_printenv
+*.img
+uImage
+*.tar.gz
+*.bin
