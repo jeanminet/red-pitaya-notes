@@ -1,4 +1,3 @@
-
 # set_property CFGBVS VCCO [current_design]
 # set_property CONFIG_VOLTAGE 3.3 [current_design]
 
@@ -51,24 +50,20 @@ set_property PACKAGE_PIN U19 [get_ports adc_clk_n_i]
 
 # clock output
 
-set_property IOSTANDARD LVCMOS18 [get_ports adc_enc_p_o]
-set_property IOSTANDARD LVCMOS18 [get_ports adc_enc_n_o]
+set_property IOSTANDARD LVCMOS18 [get_ports {adc_clk_source[*]}]
+set_property SLEW FAST [get_ports {adc_clk_source[*]}]
+set_property DRIVE 8 [get_ports {adc_clk_source[*]}]
+#set_property IOB TRUE [get_ports {adc_clk_source[*]}]
 
-set_property SLEW FAST [get_ports adc_enc_p_o]
-set_property SLEW FAST [get_ports adc_enc_n_o]
-
-set_property DRIVE 8 [get_ports adc_enc_p_o]
-set_property DRIVE 8 [get_ports adc_enc_n_o]
-
-set_property PACKAGE_PIN N20 [get_ports adc_enc_p_o]
-set_property PACKAGE_PIN P20 [get_ports adc_enc_n_o]
+set_property PACKAGE_PIN N20 [get_ports {adc_clk_source[0]}]
+set_property PACKAGE_PIN P20 [get_ports {adc_clk_source[1]}]
 
 # clock duty cycle stabilizer (CSn)
 
-set_property IOSTANDARD LVCMOS18 [get_ports adc_csn_o]
-set_property PACKAGE_PIN V18 [get_ports adc_csn_o]
-set_property SLEW FAST [get_ports adc_csn_o]
-set_property DRIVE 8 [get_ports adc_csn_o]
+set_property IOSTANDARD LVCMOS18 [get_ports adc_cdcs_o]
+set_property PACKAGE_PIN V18 [get_ports adc_cdcs_o]
+set_property SLEW FAST [get_ports adc_cdcs_o]
+set_property DRIVE 8 [get_ports adc_cdcs_o]
 
 ### DAC
 
@@ -142,72 +137,31 @@ set_property PACKAGE_PIN A20 [get_ports Vaux8_v_n]
 set_property PACKAGE_PIN E18 [get_ports Vaux9_v_p]
 set_property PACKAGE_PIN E19 [get_ports Vaux9_v_n]
 
-### Expansion connector
-
-set_property IOSTANDARD LVCMOS33 [get_ports {exp_p_tri_io[*]}]
-set_property IOSTANDARD LVCMOS33 [get_ports {exp_n_tri_io[*]}]
-set_property SLEW FAST [get_ports {exp_p_tri_io[*]}]
-set_property SLEW FAST [get_ports {exp_n_tri_io[*]}]
-set_property DRIVE 8 [get_ports {exp_p_tri_io[*]}]
-set_property DRIVE 8 [get_ports {exp_n_tri_io[*]}]
-
-set_property PACKAGE_PIN G17 [get_ports {exp_p_tri_io[0]}]
-set_property PACKAGE_PIN G18 [get_ports {exp_n_tri_io[0]}]
-set_property PACKAGE_PIN H16 [get_ports {exp_p_tri_io[1]}]
-set_property PACKAGE_PIN H17 [get_ports {exp_n_tri_io[1]}]
-set_property PACKAGE_PIN J18 [get_ports {exp_p_tri_io[2]}]
-set_property PACKAGE_PIN H18 [get_ports {exp_n_tri_io[2]}]
-set_property PACKAGE_PIN K17 [get_ports {exp_p_tri_io[3]}]
-set_property PACKAGE_PIN K18 [get_ports {exp_n_tri_io[3]}]
-set_property PACKAGE_PIN L14 [get_ports {exp_p_tri_io[4]}]
-set_property PACKAGE_PIN L15 [get_ports {exp_n_tri_io[4]}]
-set_property PACKAGE_PIN L16 [get_ports {exp_p_tri_io[5]}]
-set_property PACKAGE_PIN L17 [get_ports {exp_n_tri_io[5]}]
-set_property PACKAGE_PIN K16 [get_ports {exp_p_tri_io[6]}]
-set_property PACKAGE_PIN J16 [get_ports {exp_n_tri_io[6]}]
-set_property PACKAGE_PIN M14 [get_ports {exp_p_tri_io[7]}]
-set_property PACKAGE_PIN M15 [get_ports {exp_n_tri_io[7]}]
-
-set_property IOSTANDARD LVCMOS33 [get_ports exp_p_trg]
-set_property SLEW FAST [get_ports exp_p_trg]
-set_property DRIVE 8 [get_ports exp_p_trg]
-
-set_property PACKAGE_PIN M14 [get_ports exp_p_trg]
-
-set_property IOSTANDARD LVCMOS33 [get_ports {exp_n_alex[*]}]
-set_property SLEW FAST [get_ports {exp_n_alex[*]}]
-set_property DRIVE 8 [get_ports {exp_n_alex[*]}]
-
-set_property PACKAGE_PIN L15 [get_ports {exp_n_alex[0]}]
-set_property PACKAGE_PIN L17 [get_ports {exp_n_alex[1]}]
-set_property PACKAGE_PIN J16 [get_ports {exp_n_alex[2]}]
-set_property PACKAGE_PIN M15 [get_ports {exp_n_alex[3]}]
-
 ### SATA connector
 
-set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports daisy_p_o[*]]
-set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports daisy_n_o[*]]
+#set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports daisy_p_o[*]]
+#set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports daisy_n_o[*]]
 
-set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports daisy_p_i[*]]
-set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports daisy_n_i[*]]
+#set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports daisy_p_i[*]]
+#set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports daisy_n_i[*]]
 
-set_property PACKAGE_PIN T12 [get_ports {daisy_p_o[0]}]
-set_property PACKAGE_PIN U12 [get_ports {daisy_n_o[0]}]
+#set_property PACKAGE_PIN T12 [get_ports {daisy_p_o[0]}]
+#set_property PACKAGE_PIN U12 [get_ports {daisy_n_o[0]}]
 
-set_property PACKAGE_PIN U14 [get_ports {daisy_p_o[1]}]
-set_property PACKAGE_PIN U15 [get_ports {daisy_n_o[1]}]
+#set_property PACKAGE_PIN U14 [get_ports {daisy_p_o[1]}]
+#set_property PACKAGE_PIN U15 [get_ports {daisy_n_o[1]}]
 
-set_property PACKAGE_PIN P14 [get_ports {daisy_p_i[0]}]
-set_property PACKAGE_PIN R14 [get_ports {daisy_n_i[0]}]
+#set_property PACKAGE_PIN P14 [get_ports {daisy_p_i[0]}]
+#set_property PACKAGE_PIN R14 [get_ports {daisy_n_i[0]}]
 
-set_property PACKAGE_PIN N18 [get_ports {daisy_p_i[1]}]
-set_property PACKAGE_PIN P19 [get_ports {daisy_n_i[1]}]
+#set_property PACKAGE_PIN N18 [get_ports {daisy_p_i[1]}]
+#set_property PACKAGE_PIN P19 [get_ports {daisy_n_i[1]}]
 
 ### LED
 
 set_property IOSTANDARD LVCMOS33 [get_ports {led_o[*]}]
 set_property SLEW SLOW [get_ports {led_o[*]}]
-set_property DRIVE 8 [get_ports {led_o[*]}]
+set_property DRIVE 4 [get_ports {led_o[*]}]
 
 set_property PACKAGE_PIN F16 [get_ports {led_o[0]}]
 set_property PACKAGE_PIN F17 [get_ports {led_o[1]}]
@@ -217,3 +171,5 @@ set_property PACKAGE_PIN K14 [get_ports {led_o[4]}]
 set_property PACKAGE_PIN G14 [get_ports {led_o[5]}]
 set_property PACKAGE_PIN J15 [get_ports {led_o[6]}]
 set_property PACKAGE_PIN J14 [get_ports {led_o[7]}]
+
+
