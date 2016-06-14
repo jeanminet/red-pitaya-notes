@@ -1,9 +1,12 @@
-script=$1
-image=$2
+name=$1 
 
-size=512
+version=$(cat tmp/${name}.version)
 
-if [ $# -eq 3 ]
+image=${name}-${version}.img
+
+size=1024
+
+if [ $# -eq 2 ]
 then
   size=$3
 fi
@@ -14,6 +17,6 @@ device=`losetup -f`
 
 losetup $device $image
 
-sh $script $device
+sh scripts/ubuntu.sh $device $name $version
 
 losetup -d $device

@@ -1,10 +1,15 @@
 device=$1
+name=$2
+version=$3
+
+config_dir=os
+http_app_dir=tmp/app
 
 boot_dir=/tmp/BOOT
 root_dir=/tmp/ROOT
 
-root_tar=ubuntu-base-14.04.4-core-armhf.tar.gz
-root_url=http://cdimage.ubuntu.com/ubuntu-base/releases/14.04/release/$root_tar
+root_tar=ubuntu-base-16.04-core-armhf.tar.gz
+root_url=http://cdimage.ubuntu.com/ubuntu-base/releases/16.04/release/$root_tar
 
 hostapd_url=https://googledrive.com/host/0B-t5klOOymMNfmJ0bFQzTVNXQ3RtWm5SQ2NGTE1hRUlTd3V2emdSNzN6d0pYamNILW83Wmc/rtl8192cu/hostapd-armhf
 
@@ -34,7 +39,7 @@ mount $root_dev $root_dir
 
 # Copy files to the boot file system
 
-cp boot.bin devicetree.dtb uImage uEnv.txt $boot_dir
+cp boot.bin devicetree.dtb uImage $config_dir/uEnv.txt $boot_dir
 
 # Copy Ubuntu Core to the root file system
 
@@ -47,10 +52,40 @@ tar -zxf $root_tar --directory=$root_dir
 cp /etc/resolv.conf $root_dir/etc/
 cp /usr/bin/qemu-arm-static $root_dir/usr/bin/
 
-cp patches/fw_env.config $root_dir/etc/
+cp boards/red-pitaya/patches/fw_env.config $root_dir/etc/
 
 cp fw_printenv $root_dir/usr/local/bin/fw_printenv
 cp fw_printenv $root_dir/usr/local/bin/fw_setenv
+
+# Add Web app
+mkdir $root_dir/usr/local/flask
+mkdir $root_dir/usr/local/flask
+cp -a $http_app_dir/. $root_dir/usr/local/flask
+cp $config_dir/wsgi.py $root_dir/usr/local/flask
+unzip -o tmp/static.zip -d $root_dir/var/www
+
+# Add Koheron TCP Server
+mkdir $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/tmp/kserverd $root_dir/usr/local/tcp-server
+cp $config_dir/kserver.conf $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/VERSION $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/apis/cli/kserver $root_dir/usr/local/tcp-server
+cp tmp/${name}.tcp-server/apis/cli/kserver-completion $root_dir/etc/bash_completion.d
+cp $config_dir/tcp-server.service $root_dir/etc/systemd/system/tcp-server.service
+cp $config_dir/tcp-server-init.service $root_dir/etc/systemd/system/tcp-server-init.service
+
+# uwsgi
+mkdir $root_dir/etc/flask-uwsgi
+cp $config_dir/flask-uwsgi.ini $root_dir/etc/flask-uwsgi/flask-uwsgi.ini
+cp $config_dir/uwsgi.service $root_dir/etc/systemd/system/uwsgi.service
+
+# Add zip
+mkdir $root_dir/usr/local/instruments
+cp tmp/*-${version}.zip $root_dir/usr/local/instruments
+echo "last_deployed: /usr/local/instruments/${name}-${version}.zip" > $root_dir/usr/local/instruments/.instruments
+# Copy all available instruments in backup directory
+mkdir $root_dir/usr/local/instruments/backup
+cp tmp/*-${version}.zip $root_dir/usr/local/instruments/backup
 
 curl -L $hostapd_url -o $root_dir/usr/local/sbin/hostapd
 chmod +x $root_dir/usr/local/sbin/hostapd
@@ -58,6 +93,15 @@ chmod +x $root_dir/usr/local/sbin/hostapd
 chroot $root_dir <<- EOF_CHROOT
 export LANG=C
 export LC_ALL=C
+
+# Add /usr/local/tcp-server to the environment PATH
+cat <<- EOF_CAT > etc/environment
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/tcp-server"
+EOF_CAT
+
+cat <<- EOF_CAT > etc/zynq_sdk_version
+$version
+EOF_CAT
 
 cat <<- EOF_CAT > etc/apt/apt.conf.d/99norecommends
 APT::Install-Recommends "0";
@@ -77,27 +121,58 @@ cat <<- EOF_CAT >> etc/securetty
 ttyPS0
 EOF_CAT
 
-sed 's/tty1/ttyPS0/g; s/38400/115200/' etc/init/tty1.conf > etc/init/ttyPS0.conf
+#sed 's/tty1/ttyPS0/g; s/38400/115200/' etc/init/tty1.conf > etc/init/ttyPS0.conf
 
-echo red-pitaya > etc/hostname
+echo koheron > etc/hostname
 
-sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
-
-sed -i '/### END INIT INFO/aexit 0' /etc/init.d/udev
-apt-get update
-apt-get -y upgrade
-sed -i '/### END INIT INFO/{n;d}' /etc/init.d/udev
+cat <<- EOF_CAT >> etc/hosts
+127.0.0.1    localhost.localdomain localhost
+127.0.1.1    koheron
+EOF_CAT
 
 apt-get -y install locales
 
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
 
+sed -i '/^# deb .* universe$/s/^# //' etc/apt/sources.list
+
+apt-get update
+apt-get -y upgrade
+
 echo $timezone > etc/timezone
 dpkg-reconfigure --frontend=noninteractive tzdata
 
-apt-get -y install openssh-server ca-certificates ntp usbutils psmisc lsof \
-  parted curl less vim man-db iw wpasupplicant linux-firmware ntfs-3g
+apt-get -y install openssh-server ntp usbutils psmisc lsof \
+  parted curl less vim iw  ntfs-3g gdb  \
+  bash-completion unzip rsync 
+
+# Packages needed for Docker
+apt-get install -y lxc cgroup-lite docker.io
+cat <<- EOF_CAT >> etc/default/lxc-net
+USE_LXC_BRIDGE="false"
+EOF_CAT
+
+#apt-get install -y wpasupplicant linux-firmware usbutils ca-certificates
+
+apt-get install -y udev net-tools netbase ifupdown network-manager lsb-base
+apt-get install -y ntpdate sudo
+
+apt-get install -y nginx
+apt-get install -y build-essential python-dev
+apt-get install -y python-numpy
+apt-get install -y python-pip python-setuptools python-all-dev python-wheel
+
+pip install koheron-tcp-client
+pip install flask
+pip install jinja2
+pip install urllib3
+pip install pyyaml
+pip install uwsgi
+
+systemctl enable uwsgi
+systemctl enable tcp-server
+systemctl enable nginx
 
 sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' etc/ssh/sshd_config
 
@@ -105,12 +180,29 @@ apt-get -y install hostapd isc-dhcp-server iptables
 
 touch etc/udev/rules.d/75-persistent-net-generator.rules
 
-cat <<- EOF_CAT >> etc/network/interfaces.d/eth0
-allow-hotplug eth0
-iface eth0 inet dhcp
+cat <<- EOF_CAT > etc/rc.local
+#!/bin/sh -e
+# rc.local
+#/usr/local/tcp-server/kserverd -c /usr/local/tcp-server/kserver.conf
+exit 0
 EOF_CAT
 
-cat <<- EOF_CAT > etc/network/interfaces.d/wlan0
+cat <<- EOF_CAT >> etc/network/interfaces
+allow-hotplug eth0
+
+# DHCP configuration
+iface eth0 inet dhcp
+
+# Static IP
+#iface eth0 inet static
+#  address 192.168.1.100
+#  gateway 192.168.1.0
+#  netmask 255.255.255.0
+#  network 192.168.1.0
+#  broadcast 192.168.1.255
+  post-up ntpdate -u ntp.u-psud.fr
+  post-up systemctl start tcp-server-init
+
 allow-hotplug wlan0
 iface wlan0 inet static
   address 192.168.42.1
@@ -118,6 +210,8 @@ iface wlan0 inet static
   post-up service hostapd restart
   post-up service isc-dhcp-server restart
   post-up iptables-restore < /etc/iptables.ipv4.nat
+  post-up ntpdate -u ntp.u-psud.fr
+  post-up systemctl start tcp-server-init
   pre-down iptables-restore < /etc/iptables.ipv4.nonat
   pre-down service isc-dhcp-server stop
   pre-down service hostapd stop
@@ -125,7 +219,7 @@ EOF_CAT
 
 cat <<- EOF_CAT > etc/hostapd/hostapd.conf
 interface=wlan0
-ssid=RedPitaya
+ssid=koheron
 driver=nl80211
 hw_mode=g
 channel=6
@@ -133,7 +227,7 @@ macaddr_acl=0
 auth_algs=1
 ignore_broadcast_ssid=0
 wpa=2
-wpa_passphrase=RedPitaya
+wpa_passphrase=koheron
 wpa_key_mgmt=WPA-PSK
 wpa_pairwise=TKIP
 rsn_pairwise=CCMP
@@ -174,19 +268,6 @@ subnet 192.168.42.0 netmask 255.255.255.0 {
   max-lease-time 7200;
   option domain-name "local";
   option domain-name-servers 8.8.8.8, 8.8.4.4;
-}
-EOF_CAT
-
-cat <<- EOF_CAT >> etc/dhcp/dhclient.conf
-timeout 20;
-
-lease {
-  interface "eth0";
-  fixed-address 192.168.1.100;
-  option subnet-mask 255.255.255.0;
-  renew 2 2030/1/1 00:00:01;
-  rebind 2 2030/1/1 00:00:01;
-  expire 2 2030/1/1 00:00:01;
 }
 EOF_CAT
 
@@ -245,6 +326,12 @@ service ntp stop
 
 history -c
 EOF_CHROOT
+
+# nginx
+rm $root_dir/etc/nginx/sites-enabled/default
+cp $config_dir/nginx.conf $root_dir/etc/nginx/nginx.conf
+cp $config_dir/flask-uwsgi $root_dir/etc/nginx/sites-enabled/flask-uwsgi
+cp $config_dir/nginx.service $root_dir/etc/systemd/system/nginx.service
 
 rm $root_dir/etc/resolv.conf
 rm $root_dir/usr/bin/qemu-arm-static
